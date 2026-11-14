@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bar Menu Builder - Cherry Street</title>
+<style>
+/*FONTS*/
+:root{
+  /* layout: maroon toolbar, editor column on the left, live sheet of paper on the right. One light theme, Andolini's colors. */
+  --black:#151515; --maroon:#5A0205; --red:#821518; --gold:#BC9E6F; --cream:#EAE2C6;
+  --bg:#efe9d6; --panel:#f8f4e8; --card:#ffffff; --ink:#151515; --muted:#6a5f4e; --line:#d8ccab;
+  --accent:#821518; --accent-ink:#ffffff; --warn:#8a4f00; --warn-bg:#ffefcf; --danger:#821518;
+  --display:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 var(--body);display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- toolbar ---------- */
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(21,21,21,.10);position:relative;z-index:2}
+.brand{display:flex;align-items:center;gap:10px;font:700 16px/1.1 var(--display);letter-spacing:0;text-transform:uppercase;margin-right:4px}
+.mark{flex:none;height:32px;width:auto;display:block}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:none;padding:8px 16px;font:700 13px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;display:flex;gap:6px;align-items:center}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:none}
+.seg button.over .dot{display:block}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:#188038;border-color:#188038;color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.note-line{padding:8px 16px;background:var(--warn-bg);color:var(--warn);font-size:13px;border-bottom:1px solid var(--line)}
+.note-line[hidden]{display:none}
+
+/* ---------- workspace ---------- */
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(340px,470px) 1fr}
+.editor{overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px;border-right:1px solid var(--line);background:var(--panel)}
+.stage{overflow:auto;padding:16px 24px 32px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.status{align-self:stretch;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.stamp{display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-weight:600}
+.stamp svg{color:var(--red)}
+.stamp.bad{color:var(--warn)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.pill.over{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.paper{box-shadow:0 1px 2px rgba(0,0,0,.2),0 8px 28px rgba(0,0,0,.16);background:#fff;flex:none;overflow:hidden}
+.paper .pg{transform-origin:0 0}
+@media (max-width:820px){
+  main{grid-template-columns:1fr;overflow:auto}
+  .editor{overflow:visible;border-right:0;border-bottom:1px solid var(--line)}
+  .stage{overflow:visible}
+}
+
+/* ---------- editor ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.card h2{margin:0;font:700 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:6px;align-items:center}
+.grow{flex:1;min-width:0}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+label.check{display:flex;gap:8px;align-items:center}
+input[type=text],textarea,select{width:100%;border:1px solid var(--line);border-radius:6px;background:var(--card);padding:7px 9px;color:var(--ink);font-size:14px}
+textarea{resize:vertical;min-height:34px;line-height:1.35;display:block}
+.sec-card{border-top:4px solid var(--maroon);padding-top:10px}
+.sec-card .tabname{font:700 14px/1.2 var(--display);text-transform:uppercase}
+.ib{flex:none;width:32px;height:32px;border:1px solid var(--line);border-radius:6px;background:var(--card);cursor:pointer;display:inline-grid;place-items:center;font-size:15px;line-height:1;padding:0}
+.ib:hover:not(:disabled){border-color:var(--muted)}
+.ib:disabled{opacity:.3;cursor:default}
+.ib.del{color:var(--danger)}
+.tog{flex:none;width:28px;height:28px;border-radius:50%;border:0;background:var(--red);color:#fff;cursor:pointer;display:inline-grid;place-items:center;padding:0}
+.tog:hover{background:var(--maroon)}
+.tog svg{display:block}
+.colbox{border:1px dashed var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
+.colhead{display:flex;align-items:center;gap:6px;font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.colhead span{flex:1}
+.cat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.cat textarea.head{font:700 14px/1.25 var(--display);text-transform:uppercase}
+.ilist{display:flex;flex-direction:column;gap:4px}
+.irow{display:flex;gap:4px;align-items:stretch}
+.isum{flex:1;min-width:0;text-align:left;border:1px solid var(--line);border-radius:6px;background:var(--card);padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;min-height:32px}
+.isum:hover{border-color:var(--muted)}
+.isum b{font:700 12.5px/1.25 var(--display);text-transform:uppercase}
+.isum b i{font:400 13px/1 var(--body);font-style:normal;margin-left:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.isum small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.iform{border:1px solid var(--accent);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px;background:var(--card)}
+.iform .two{display:grid;grid-template-columns:1fr 110px;gap:6px}
+.add{border:1px dashed var(--muted);background:none;border-radius:6px;padding:7px 10px;cursor:pointer;color:var(--ink);font-weight:600;text-align:left}
+.add:hover{border-style:solid}
+.empty{color:var(--muted);font-size:12px;font-style:italic}
+label.check.small{font-size:12px;color:var(--muted)}
+.editor[inert]{opacity:.45}
+.note-line.view{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:var(--cream);color:var(--ink)}
+.note-line.view[hidden]{display:none}
+#hist-list{list-style:none;margin:0;padding:0;max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px}
+#hist-list li{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+#hist-list li div{flex:1;min-width:0;display:flex;flex-direction:column}
+#hist-list li span{color:var(--muted);font-size:12px}
+
+/* ---------- toast + dialog ---------- */
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--black);color:var(--cream);padding:9px 14px;border-radius:8px;display:flex;gap:12px;align-items:center;max-width:calc(100% - 32px);z-index:5}
+.toast[hidden]{display:none}
+#toast-undo[hidden]{display:none}
+.toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:18px;width:min(560px,calc(100% - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin:0 0 6px;font:800 15px/1.2 var(--display);text-transform:uppercase;letter-spacing:.05em}
+dialog p{margin:0 0 10px;color:var(--muted)}
+dialog .row{flex-wrap:wrap;margin-top:10px}
+
+/* ---------- the menu page (units = the 1214 x 1571 Figma frame) ---------- */
+.pg{width:1214px;height:1571px;position:relative;background:#fff;color:#151515;overflow:hidden;font-family:"Montserrat",sans-serif;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}
+.pg *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg .wm{position:absolute;left:0;top:0;width:1214px;height:1571px;fill:#efeeee}
+.pg-title,.pg-foot{position:absolute;left:0;right:0;text-align:center;text-transform:uppercase;font-weight:800;white-space:nowrap}
+.pg-title{top:64.53px;font-size:32px;line-height:32px;letter-spacing:2.68px;padding-left:2.68px}
+.pg-foot{top:1490.7px;font-size:12px;line-height:12px;letter-spacing:1.01px;padding-left:1.01px}
+.pg-flow{position:relative;padding:0 70px}
+.m-sec{border-top:2px solid #151515;margin-top:51.26px}
+.m-sec.sp-compact{margin-top:20.26px}
+.pg-flow > .m-sec:first-child{margin-top:0}
+.m-head{display:flex;align-items:center;min-height:50px}
+.m-tab{align-self:stretch;flex:none;background:#151515;color:#fff;padding:0 24px;display:flex;align-items:center;font-weight:700;font-size:24px;line-height:24px;text-transform:uppercase;white-space:nowrap}
+.m-note{font-family:"Sofia Sans Extra Condensed","Arial Narrow",sans-serif;margin-left:16px;font-weight:700;font-size:23px;line-height:22px;letter-spacing:-.02em;text-transform:uppercase}
+.m-body{padding-top:17px}
+.sp-compact .m-body{padding-top:13px}
+.m-cols{display:grid;column-gap:24px;align-items:start}
+.m-c2{grid-template-columns:repeat(2,525px)}
+.m-c3{grid-template-columns:repeat(3,342px)}
+.m-c4{grid-template-columns:repeat(4,250.5px)}
+.m-c2 .m-cat-h{width:342px}
+.m-grid{display:grid;grid-template-columns:repeat(3,342px);column-gap:24px;row-gap:24.26px;align-items:start}
+.m-cat + .m-cat{margin-top:22.26px}
+.sp-compact .m-cat + .m-cat{margin-top:5.26px}
+.m-cat-h{font-weight:700;font-size:22px;line-height:22px;letter-spacing:-.015em;padding:3.11px 0 6.89px;border-bottom:2px solid #151515;text-transform:uppercase;white-space:pre-line}
+.m-sm{font-size:16px}
+.m-items{padding-top:11px}
+.sp-compact .m-items{padding-top:7px}
+.m-it{display:flex;flex-direction:column}
+.m-it + .m-it{margin-top:4.26px}
+.sp-roomy .m-it + .m-it{margin-top:24.26px}
+.m-grid .m-it + .m-it{margin-top:0}
+.m-bul .m-items{padding-top:20px;display:grid;grid-template-columns:525px 525px;column-gap:16px;align-items:start}
+.m-bul .m-it{position:relative;padding-left:24px}
+.m-bul .m-it + .m-it{margin-top:26.26px}
+.m-bul .m-it::before{content:"";position:absolute;left:0;top:50%;margin-top:-16px;border-left:12px solid #151515;border-top:17px solid transparent;border-bottom:17px solid transparent}
+.m-name{font-family:"Sofia Sans Extra Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:19px;line-height:19px;letter-spacing:-.02em;padding-top:2.8px;margin-bottom:-1.06px;text-transform:uppercase}
+.m-nb{white-space:nowrap}
+.m-price{font-family:"Sofia Sans Extra Condensed","Arial Narrow",sans-serif;font-weight:400;font-size:19px;line-height:0;letter-spacing:0;margin-left:7.5px}
+.m-desc{font-family:"Sofia Sans Extra Condensed","Arial Narrow",sans-serif;font-weight:400;font-size:19px;line-height:19px;margin-top:1.06px;margin-bottom:-1.06px;white-space:pre-line}
+
+#measure{position:absolute;left:-99999px;top:0;visibility:hidden}
+#print-root{display:none}
+@media print{
+  @page{size:8.5in 11in;margin:0}
+  html,body{height:auto;background:#fff;display:block}
+  body>*:not(#print-root){display:none!important}
+  #print-root{display:block}
+  .sheet{width:8.5in;height:11in;overflow:hidden;position:relative;break-after:page}
+  .sheet:last-child{break-after:auto}
+  .sheet .pg{transform:scale(.672158);transform-origin:0 0}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">__LOGO__Bar Menu Builder - Cherry Street</div>
+  <div class="seg" role="group" aria-label="Which side of the menu">
+    <button type="button" id="side-front" data-side="front">Front<span class="dot" title="Runs off the page"></span></button>
+    <button type="button" id="side-back" data-side="back">Back<span class="dot" title="Runs off the page"></span></button>
+  </div>
+  <div class="spacer"></div>
+  <button type="button" class="btn" id="history">History</button>
+  <button type="button" class="btn" id="save-version">Save version</button>
+  <button type="button" class="btn" id="undo" disabled>Undo</button>
+  <button type="button" class="btn" id="print-both">Print both sides</button>
+  <button type="button" class="btn primary" id="print-one">Print this side</button>
+</header>
+<div class="note-line" id="frame-note" hidden>Printing is blocked inside this preview window. Open the app from its own web address, or from the downloaded file, and the print buttons will open the print dialog. Choose “Save as PDF” there to export.</div>
+<div class="note-line view" id="view-note" hidden><span id="view-text"></span><button type="button" class="btn" id="view-restore">Restore this version</button><button type="button" class="btn" id="view-back">Back to the current menu</button></div>
+<main>
+  <div class="editor" id="editor"></div>
+  <div class="stage" id="stage">
+    <div class="status"><span id="fit" class="pill">Checking fit…</span><span class="stamp" id="stamp" title="When this menu was last changed"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect x="1.5" y="3" width="13" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 6.5h13M5 1.2v3.2M11 1.2v3.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="4.2" y="8.6" width="2.6" height="2.6" rx=".5" fill="currentColor"/></svg><span id="saved"></span></span></div>
+    <div class="paper" id="paper"></div>
+  </div>
+</main>
+<div class="toast" id="toast" hidden role="status"><span id="toast-msg"></span><button type="button" id="toast-undo">Undo</button></div>
+<dialog id="hist">
+  <h3>History</h3>
+  <p>A version is saved each time you print, or when you press Save version. The newest 60 are kept in this browser.</p>
+  <ul id="hist-list"></ul>
+  <div class="row"><button type="button" class="btn" id="hist-reset">Reset to the original menu</button><span class="spacer"></span><button type="button" class="btn primary" id="hist-close">Close</button></div>
+</dialog>
+<div id="measure" aria-hidden="true"></div>
+<div id="print-root" aria-hidden="true"></div>
+
+<script>
+const SEED = __SEED__;
+const WM = '<svg class="wm" viewBox="0 0 1214 1571" aria-hidden="true">__WM__</svg>';
+const KEY = 'menu-builder:cherry-street:v2';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+let n = 0; const uid = () => 'k' + (++n) + Math.random().toString(36).slice(2, 6);
+
+/* ---------- layouts ---------- */
+const NCOLS = {cols2: 2, cols3: 3, cols4: 4};
+const LAYOUTS = [['cols2','Two columns of categories'],['cols3','Three columns of categories'],['cols4','Four columns of categories'],
+  ['full','Categories across the full width'],['bullets','Full width, items in two columns with arrows'],['grid','Items three across, no categories']];
+const SPACINGS = [['compact','Compact'],['standard','Standard'],['roomy','Roomy (extra space between items)']];
+
+/* ---------- state ---------- */
+function stamp(d){
+  for (const side of ['front','back']) for (const s of d[side].sections){
+    s.id ||= uid(); s.items ||= []; s.columns ||= [];
+    while (s.columns.length < 4) s.columns.push([]);
+    if (s.layout === 'columns') s.layout = 'cols3';
+    if (!LAYOUTS.some(l => l[0] === s.layout)) s.layout = 'cols3';
+    if (!['compact','standard','roomy'].includes(s.spacing)) s.spacing = 'standard';
+    s.items.forEach(i => i.id ||= uid());
+    s.columns.flat().forEach(g => { g.id ||= uid(); g.items.forEach(i => i.id ||= uid()); });
+  }
+  return d;
+}
+function valid(d){ return d && d.front && d.back && Array.isArray(d.front.sections) && Array.isArray(d.back.sections); }
+function load(){
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (valid(d)) return stamp(d); } catch(e){}
+  return stamp(clone(SEED));
+}
+let state = load();
+const ui = { side: location.hash === '#back' ? 'back' : 'front', open: new Set(), shut: new Set(), focus: null };
+const past = [];
+let burst = false;
+const menu = () => state[ui.side];
+const shown = () => ui.viewing ? ui.viewing.state : state;   /* what the paper and the printer show */
+const when = iso => { const d = new Date(iso); return isNaN(d) ? 'not recorded' : d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric', year:'numeric'}) + ' at ' + d.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}); };
+
+/* ---------- history (kept in this browser) ---------- */
+const HKEY = KEY + ':history';
+let hist = []; try { const h = JSON.parse(localStorage.getItem(HKEY)); if (Array.isArray(h)) hist = h; } catch(e){}
+const bare = d => JSON.stringify({front: d.front, back: d.back});
+function itemMap(d){
+  const m = new Map();
+  for (const side of ['front','back']) for (const s of d[side].sections)
+    for (const i of [...(s.items || []), ...(s.columns || []).flat().flatMap(g => g.items)]) m.set(i.id, [i.name, i.price, i.desc].join('|'));
+  return m;
+}
+function summarize(prev, cur){
+  if (!prev) return 'First saved version';
+  const a = itemMap(prev), b = itemMap(cur); let add = 0, rem = 0, chg = 0;
+  for (const [k, v] of b){ if (!a.has(k)) add++; else if (a.get(k) !== v) chg++; }
+  for (const k of a.keys()) if (!b.has(k)) rem++;
+  const parts = [];
+  if (chg) parts.push(chg + ' item' + (chg > 1 ? 's' : '') + ' changed'); if (add) parts.push(add + ' added'); if (rem) parts.push(rem + ' removed');
+  return parts.length ? parts.join(', ') : 'Layout, order or headings changed';
+}
+function saveVersion(why){
+  if (hist.length && bare(hist[0].state) === bare(state)) return false;
+  hist.unshift({id: uid(), at: new Date().toISOString(), why, summary: summarize(hist[0] && hist[0].state, state), state: clone(state)});
+  while (hist.length > 60) hist.pop();
+  for (;;){ try { localStorage.setItem(HKEY, JSON.stringify(hist)); return true; } catch(e){ if (hist.length <= 1) return true; hist.pop(); } }
+}
+function renderHist(){
+  $('hist-list').innerHTML = hist.length ? hist.map((h, i) => '<li><div><b>' + esc(when(h.at)) + '</b><span>' + esc(h.why) + ' · ' + esc(h.summary) + '</span></div>' +
+    '<button type="button" class="btn" data-h="view" data-i="' + i + '">View</button><button type="button" class="btn" data-h="restore" data-i="' + i + '">Restore</button></li>').join('')
+    : '<li><span>No saved versions yet.</span></li>';
+}
+function setViewing(h){
+  ui.viewing = h || null;
+  $('view-note').hidden = !h; $('editor').inert = !!h;
+  if (h) $('view-text').textContent = 'You are looking at the saved version from ' + when(h.at) + '. Editing is paused.';
+  renderPage();
+}
+function restore(h){
+  snap(); state = stamp(clone(h.state)); ui.viewing = null; $('view-note').hidden = true; $('editor').inert = false;
+  commit(true); showToast('Restored the version from ' + when(h.at) + '.');
+}
+
+/* ---------- A to Z ---------- */
+const byName = (a, b) => { const x = (a.name || '').trim(), y = (b.name || '').trim(); return (!x) - (!y) || x.localeCompare(y, undefined, {numeric: true, sensitivity: 'base'}); };
+const ordered = box => box.alpha ? [...box.items].sort(byName) : box.items;
+function sortAll(){
+  for (const side of ['front','back']) for (const s of state[side].sections){
+    if (s.alpha && s.layout === 'grid') s.items.sort(byName);
+    for (const g of s.columns.flat()) if (g.alpha) g.items.sort(byName);
+  }
+}
+
+function save(){
+  let ok = true;
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){ ok = false; }
+  $('saved').textContent = 'Last updated ' + when(state.updatedAt) + (ok ? '' : '. This browser is not saving changes, so edits will be lost when this page closes.');
+  $('stamp').classList.toggle('bad', !ok);
+}
+function snap(){ past.push(JSON.stringify(state)); if (past.length > 60) past.shift(); $('undo').disabled = false; }
+function undo(){
+  if (!past.length) return;
+  state = JSON.parse(past.pop()); $('undo').disabled = !past.length; hideToast(); commit(true, true);
+}
+function commit(full, keepTime){ if (!keepTime) state.updatedAt = new Date().toISOString(); if (full) sortAll(); save(); if (full) renderEditor(); renderPage(); }
+
+/* ---------- the printed page ---------- */
+function itemHTML(it){
+  const name = (it.name || '').trim(), price = String(it.price ?? '').trim(), desc = (it.desc || '').trim();
+  let nm = esc(name);
+  if (price){
+    const k = name.lastIndexOf(' ');
+    nm = esc(name.slice(0, k + 1)) + '<span class="m-nb">' + esc(name.slice(k + 1)) + '<span class="m-price">' + esc(price) + '</span></span>';
+  }
+  return '<div class="m-it"><div class="m-name">' + nm + '</div>' + (desc ? '<div class="m-desc">' + esc(desc) + '</div>' : '') + '</div>';
+}
+/* a heading typed like IPAs keeps its small final s */
+const headHTML = h => esc((h || '').trim()).replace(/\b([A-Z]{2,})s\b/g, '$1<span class="m-sm">s</span>');
+function catHTML(g, two){
+  const list = ordered(g);
+  let items = list.map(itemHTML).join('');
+  if (two){ const k = Math.ceil(list.length / 2); items = '<div>' + list.slice(0, k).map(itemHTML).join('') + '</div><div>' + list.slice(k).map(itemHTML).join('') + '</div>'; }
+  return '<div class="m-cat"><div class="m-cat-h">' + headHTML(g.heading) + '</div><div class="m-items">' + items + '</div></div>';
+}
+function sectionHTML(s){
+  let body;
+  if (s.layout === 'grid') body = '<div class="m-grid">' + ordered(s).map(itemHTML).join('') + '</div>';
+  else if (s.layout === 'full') body = '<div class="m-full">' + s.columns[0].map(g => catHTML(g)).join('') + '</div>';
+  else if (s.layout === 'bullets') body = '<div class="m-full m-bul">' + s.columns[0].map(g => catHTML(g, true)).join('') + '</div>';
+  else { const k = NCOLS[s.layout]; body = '<div class="m-cols m-c' + k + '">' + s.columns.slice(0, k).map(c => '<div>' + c.map(g => catHTML(g)).join('') + '</div>').join('') + '</div>'; }
+  return '<section class="m-sec sp-' + s.spacing + '"><div class="m-head"><div class="m-tab">' + esc(s.tab) + '</div>' +
+    (s.note && s.note.trim() ? '<div class="m-note">' + esc(s.note.trim()) + '</div>' : '') + '</div><div class="m-body">' + body + '</div></section>';
+}
+function pageHTML(m){
+  const t = (m.title || '').trim(), f = (m.footer || '').trim();
+  return '<div class="pg">' + (m.watermark ? WM : '') +
+    (t ? '<div class="pg-title">' + esc(t) + '</div>' : '') +
+    '<div class="pg-flow" style="padding-top:' + (t ? 109 : 57) + 'px">' + m.sections.map(sectionHTML).join('') + '</div>' +
+    (f ? '<div class="pg-foot">' + esc(f) + '</div>' : '') + '</div>';
+}
+/* how far past the printable area the content runs, in page units (<= 0 means it fits) */
+function overflow(side){
+  const m = shown()[side], box = $('measure');
+  box.innerHTML = pageHTML(m);
+  const h = box.querySelector('.pg-flow').offsetHeight;
+  box.innerHTML = '';
+  return h - ((m.footer || '').trim() ? 1470 : 1531);
+}
+function fitPaper(){
+  const paper = $('paper'), pg = paper.firstElementChild; if (!pg) return;
+  const w = Math.max(280, $('stage').clientWidth - 48), k = Math.min(1, w / 1214);
+  paper.style.width = 1214 * k + 'px'; paper.style.height = 1571 * k + 'px';
+  pg.style.transform = 'scale(' + k + ')';
+}
+function setPrint(sides){ $('print-root').innerHTML = sides.map(s => '<div class="sheet">' + pageHTML(shown()[s]) + '</div>').join(''); }
+function renderPage(){
+  $('paper').innerHTML = pageHTML(shown()[ui.side]); fitPaper(); setPrint([ui.side]);
+  for (const side of ['front','back']){
+    const over = overflow(side);
+    $('side-' + side).classList.toggle('over', over > 0);
+    $('side-' + side).setAttribute('aria-pressed', side === ui.side);
+    if (side === ui.side){
+      const pill = $('fit'); pill.classList.toggle('over', over > 0);
+      pill.textContent = over > 0
+        ? 'Too long for one page. Remove or shorten about ' + Math.ceil(over / 22) + ' line' + (over > 22 ? 's' : '') + '.'
+        : 'Fits on one page';
+    }
+  }
+}
+
+/* ---------- the editor ---------- */
+const at = (s, c, g, i) => 'data-s="' + s + '"' + (c != null ? ' data-c="' + c + '"' : '') + (g != null ? ' data-g="' + g + '"' : '') + (i != null ? ' data-i="' + i + '"' : '');
+const ib = (a, label, sym, pos, off, cls) => '<button type="button" class="ib ' + (cls || '') + '" data-a="' + a + '" ' + pos + ' title="' + label + '" aria-label="' + label + '"' + (off ? ' disabled' : '') + '>' + sym + '</button>';
+const fid = (s, c, g, i, f) => 'f-' + [s, c, g, i].filter(v => v != null).join('-') + '-' + f;
+
+function itemsEd(list, s, c, g, alpha){
+  const rows = list.map((it, i) => {
+    const pos = at(s, c, g, i), last = list.length - 1;
+    if (ui.open.has(it.id)) return '<div class="iform">' +
+      '<div class="two"><label class="f">Name<input type="text" id="' + fid(s,c,g,i,'name') + '" data-f="name" ' + pos + ' value="' + esc(it.name) + '"' + (ui.focus === it.id ? ' data-focus' : '') + '></label>' +
+      '<label class="f">Price<input type="text" id="' + fid(s,c,g,i,'price') + '" data-f="price" ' + pos + ' value="' + esc(it.price) + '" inputmode="decimal"></label></div>' +
+      '<label class="f">Description (optional, Enter starts a new line)<textarea rows="2" id="' + fid(s,c,g,i,'desc') + '" data-f="desc" ' + pos + '>' + esc(it.desc) + '</textarea></label>' +
+      '<div class="row"><button type="button" class="btn" data-a="item-edit" ' + pos + '>Done</button><span class="spacer"></span>' +
+      (alpha ? '' : ib('item-up','Move item up','↑',pos,i === 0) + ib('item-down','Move item down','↓',pos,i === last)) + ib('item-del','Delete item','✕',pos,false,'del') + '</div></div>';
+    return '<div class="irow"><button type="button" class="isum" data-a="item-edit" ' + pos + ' title="Edit item"><b>' + esc(it.name || 'Untitled item') +
+      (String(it.price ?? '').trim() ? '<i>' + esc(it.price) + '</i>' : '') + '</b>' + ((it.desc || '').trim() ? '<small>' + esc(it.desc) + '</small>' : '') + '</button>' +
+      (alpha ? '' : ib('item-up','Move item up','↑',pos,i === 0) + ib('item-down','Move item down','↓',pos,i === last)) + ib('item-del','Delete item','✕',pos,false,'del') + '</div>';
+  }).join('');
+  return '<div class="ilist">' + (rows || '<div class="empty">No items yet</div>') + '</div>' +
+    '<button type="button" class="add" data-a="item-add" ' + at(s, c, g) + '>+ Add item</button>';
+}
+function catEd(g, s, c, gi, col, k){
+  const sideways = k > 1;
+  const pos = at(s, c, gi), lines = (g.heading || '').split('\n').length;
+  return '<div class="cat"><div class="row"><textarea class="head grow" rows="' + lines + '" id="' + fid(s,c,gi,null,'heading') + '" data-f="heading" ' + pos + ' aria-label="Category name" placeholder="Category name">' + esc(g.heading) + '</textarea>' +
+    ib('cat-up','Move category up','↑',pos,gi === 0) + ib('cat-down','Move category down','↓',pos,gi === col.length - 1) +
+    (sideways ? ib('cat-left','Move category to the column on the left','←',pos,c === 0) + ib('cat-right','Move category to the column on the right','→',pos,c === k - 1) : '') +
+    ib('cat-del','Delete category','✕',pos,false,'del') + '</div>' +
+    '<label class="check small"><input type="checkbox" id="' + fid(s,c,gi,null,'alpha') + '" data-f="alpha" ' + pos + (g.alpha ? ' checked' : '') + '> Keep items in A to Z order</label>' +
+    itemsEd(g.items, s, c, gi, g.alpha) + '</div>';
+}
+function sectionEd(s, si, all){
+  const pos = at(si), shut = ui.shut.has(s.id);
+  let body = '';
+  if (!shut){
+    body = '<label class="f">Black bar label<input type="text" id="' + fid(si,null,null,null,'tab') + '" data-f="tab" ' + pos + ' value="' + esc(s.tab) + '"></label>' +
+      '<label class="f">Note beside the bar (optional)<input type="text" id="' + fid(si,null,null,null,'note') + '" data-f="note" ' + pos + ' value="' + esc(s.note) + '"></label>' +
+      '<label class="f">Layout<select id="' + fid(si,null,null,null,'layout') + '" data-f="layout" ' + pos + '>' +
+      LAYOUTS.map(o => '<option value="' + o[0] + '"' + (s.layout === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' +
+      '<label class="f">Spacing<select id="' + fid(si,null,null,null,'spacing') + '" data-f="spacing" ' + pos + '>' +
+      SPACINGS.map(o => '<option value="' + o[0] + '"' + (s.spacing === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>';
+    if (s.layout === 'grid') body += '<label class="check small"><input type="checkbox" id="' + fid(si,null,null,null,'alpha') + '" data-f="alpha" ' + pos + (s.alpha ? ' checked' : '') + '> Keep items in A to Z order</label>' + itemsEd(s.items, si, null, null, s.alpha);
+    else if (!NCOLS[s.layout]) body += s.columns[0].map((g, gi) => catEd(g, si, 0, gi, s.columns[0], 1)).join('') + '<button type="button" class="add" data-a="cat-add" ' + at(si, 0) + '>+ Add category</button>';
+    else body += s.columns.slice(0, NCOLS[s.layout]).map((col, c, all) => '<div class="colbox"><div class="colhead"><span>Column ' + (c + 1) + ' of ' + all.length + '</span>' +
+      ib('col-left','Move this whole column left','←',at(si, c),c === 0) + ib('col-right','Move this whole column right','→',at(si, c),c === all.length - 1) + '</div>' +
+      col.map((g, gi) => catEd(g, si, c, gi, col, all.length)).join('') + '<button type="button" class="add" data-a="cat-add" ' + at(si, c) + '>+ Add category</button></div>').join('');
+  }
+  return '<section class="card sec-card"><div class="row">' + '<button type="button" class="tog" data-a="sec-toggle" ' + pos + ' aria-expanded="' + !shut + '" title="' + (shut ? 'Open section' : 'Close section') + '" aria-label="' + (shut ? 'Open section' : 'Close section') + '"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="' + (shut ? 'M3 8h10M8 3v10' : 'M3 8h10') + '" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button>' +
+    '<span class="tabname grow">' + esc(s.tab || 'Untitled section') + '</span>' +
+    ib('sec-up','Move section up','↑',pos,si === 0) + ib('sec-down','Move section down','↓',pos,si === all.length - 1) + ib('sec-del','Delete section','✕',pos,false,'del') + '</div>' + body + '</section>';
+}
+function renderEditor(){
+  const m = menu(), ed = $('editor'), top = ed.scrollTop;
+  ed.innerHTML = '<section class="card"><h2>' + (ui.side === 'front' ? 'Front' : 'Back') + ' page</h2>' +
+    '<label class="f">Title at the top (leave empty for none)<input type="text" id="f-title" data-f="title" value="' + esc(m.title) + '"></label>' +
+    '<label class="f">Small print at the bottom (leave empty for none)<input type="text" id="f-footer" data-f="footer" value="' + esc(m.footer) + '"></label>' +
+    '<label class="f">PDF file name<input type="text" id="f-fileName" data-f="fileName" value="' + esc(m.fileName) + '"></label>' +
+    '<label class="check"><input type="checkbox" id="f-watermark" data-f="watermark"' + (m.watermark ? ' checked' : '') + '> Show the logo watermark</label></section>' +
+    m.sections.map(sectionEd).join('') +
+    '<button type="button" class="add" data-a="sec-add">+ Add section (a new black bar)</button>';
+  ed.scrollTop = top;
+  const f = ed.querySelector('[data-focus]'); if (f){ f.focus(); f.select(); f.scrollIntoView({block:'nearest'}); }
+  ui.focus = null;
+}
+
+/* ---------- actions ---------- */
+const swap = (a, i, j) => { [a[i], a[j]] = [a[j], a[i]]; };
+function setLayout(s, to){
+  const from = s.layout; if (from === to) return;
+  let cols = s.columns;
+  if (from === 'grid'){ cols = [s.items.length ? [{id: uid(), heading: 'New category', items: s.items}] : []]; s.items = []; }
+  if (to === 'grid'){ s.items = cols.flat().flatMap(g => g.items); cols = []; }
+  else if (NCOLS[to]){
+    const k = NCOLS[to];
+    if (NCOLS[from]){ const extra = cols.slice(k).flat(); cols = cols.slice(0, k); cols[k - 1] = cols[k - 1].concat(extra); }
+    else { const cats = cols.flat(); cols = Array.from({length: k}, () => []); cats.forEach((g, i) => cols[i % k].push(g)); }
+  }
+  else cols = [cols.flat()];
+  while (cols.length < 4) cols.push([]);
+  s.columns = cols; s.layout = to;
+}
+function where(d){
+  const s = menu().sections[+d.s], c = d.c != null ? +d.c : null, g = d.g != null ? +d.g : null, i = d.i != null ? +d.i : null;
+  const col = c != null && s ? s.columns[c] : null, cat = g != null ? col[g] : null;
+  return { s, si: +d.s, c, g, i, col, cat, items: cat ? cat.items : (s ? s.items : null) };
+}
+function act(a, d){
+  const m = menu(), w = where(d);
+  if (a === 'sec-toggle'){ ui.shut.has(w.s.id) ? ui.shut.delete(w.s.id) : ui.shut.add(w.s.id); return renderEditor(); }
+  if (a === 'item-edit'){ const it = w.items[w.i]; if (ui.open.has(it.id)){ ui.open.delete(it.id); sortAll(); save(); renderPage(); } else { ui.open.add(it.id); ui.focus = it.id; } return renderEditor(); }
+  snap(); let gone = null;
+  switch (a){
+    case 'sec-add': m.sections.push({id: uid(), tab: 'New section', note: '', layout: 'cols3', spacing: 'standard', columns: [[],[],[],[]], items: []}); break;
+    case 'sec-up': swap(m.sections, w.si, w.si - 1); break;
+    case 'sec-down': swap(m.sections, w.si, w.si + 1); break;
+    case 'sec-del': gone = 'the ' + (w.s.tab || 'untitled') + ' section'; m.sections.splice(w.si, 1); break;
+    case 'col-left': swap(w.s.columns, w.c, w.c - 1); break;
+    case 'col-right': swap(w.s.columns, w.c, w.c + 1); break;
+    case 'cat-add': w.col.push({id: uid(), heading: 'New category', items: []}); break;
+    case 'cat-up': swap(w.col, w.g, w.g - 1); break;
+    case 'cat-down': swap(w.col, w.g, w.g + 1); break;
+    case 'cat-left': w.s.columns[w.c - 1].push(w.col.splice(w.g, 1)[0]); break;
+    case 'cat-right': w.s.columns[w.c + 1].push(w.col.splice(w.g, 1)[0]); break;
+    case 'cat-del': gone = 'the ' + (w.cat.heading || 'untitled').replace(/\n/g, ' ') + ' category'; w.col.splice(w.g, 1); break;
+    case 'item-add': { const it = {id: uid(), name: '', price: '', desc: ''}; w.items.push(it); ui.open.add(it.id); ui.focus = it.id; break; }
+    case 'item-up': swap(w.items, w.i, w.i - 1); break;
+    case 'item-down': swap(w.items, w.i, w.i + 1); break;
+    case 'item-del': gone = w.items[w.i].name || 'the item'; w.items.splice(w.i, 1); break;
+  }
+  commit(true);
+  if (gone) showToast('Deleted ' + gone + '.'); else hideToast();
+}
+function edit(el){
+  const f = el.dataset.f, m = menu();
+  if (!burst){ snap(); burst = true; }
+  if (f === 'watermark'){ m.watermark = el.checked; burst = false; return commit(false); }
+  if (f === 'alpha'){ const w = where(el.dataset); (w.cat || w.s).alpha = el.checked; burst = false; return commit(true); }
+  if (f === 'title' || f === 'footer' || f === 'fileName'){ m[f] = el.value; return commit(false); }
+  const w = where(el.dataset);
+  if (f === 'layout'){ setLayout(w.s, el.value); burst = false; return commit(true); }
+  if (f === 'spacing'){ w.s.spacing = el.value; burst = false; return commit(false); }
+  if (f === 'tab'){ w.s.tab = el.value; el.closest('.sec-card').querySelector('.tabname').textContent = el.value || 'Untitled section'; }
+  else if (f === 'note') w.s.note = el.value;
+  else if (f === 'heading'){ w.cat.heading = el.value; el.rows = el.value.split('\n').length; }
+  else w.items[w.i][f] = el.value;
+  commit(false);
+}
+
+/* ---------- toast, print, backup ---------- */
+let toastTimer;
+function showToast(msg){ $('toast-undo').hidden = false; $('toast-msg').textContent = msg; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 8000); }
+function hideToast(){ $('toast').hidden = true; }
+function printSides(sides){
+  let framed = false; try { framed = window.self !== window.top; } catch(e){ framed = true; }
+  if (framed) $('frame-note').hidden = false;
+  if (!ui.viewing) saveVersion(sides.length > 1 ? 'Printed both sides' : 'Printed the ' + sides[0]);
+  const old = document.title;
+  setPrint(sides);
+  document.title = sides.length > 1 ? (shown().front.fileName || 'Menu').replace(/\s*-\s*Front$/i, '') + ' - Front and Back' : (shown()[sides[0]].fileName || 'Menu');
+  const done = () => { document.title = old; setPrint([ui.side]); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  try { window.print(); } catch(e){ done(); }
+}
+function setSide(side){ ui.side = side; try { history.replaceState(null, '', '#' + side); } catch(e){} renderEditor(); renderPage(); }
+
+$('editor').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (b && !b.disabled) act(b.dataset.a, b.dataset); });
+$('editor').addEventListener('input', e => { if (e.target.dataset.f && e.target.tagName !== 'SELECT' && e.target.type !== 'checkbox') edit(e.target); });
+$('editor').addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') edit(e.target); });
+$('editor').addEventListener('focusout', () => { burst = false; });
+document.querySelectorAll('[data-side]').forEach(b => b.addEventListener('click', () => setSide(b.dataset.side)));
+$('undo').addEventListener('click', undo);
+$('save-version').addEventListener('click', () => { const ok = saveVersion('Saved'); showToast(ok ? 'Version saved to History.' : 'Nothing has changed since the last saved version.'); $('toast-undo').hidden = true; });
+$('history').addEventListener('click', () => { renderHist(); $('hist').showModal(); });
+$('hist-close').addEventListener('click', () => $('hist').close());
+$('hist-list').addEventListener('click', e => { const b = e.target.closest('button[data-h]'); if (!b) return; const h = hist[+b.dataset.i]; $('hist').close(); b.dataset.h === 'view' ? setViewing(h) : restore(h); });
+$('view-back').addEventListener('click', () => setViewing(null));
+$('view-restore').addEventListener('click', () => restore(ui.viewing));
+$('toast-undo').addEventListener('click', undo);
+$('print-one').addEventListener('click', () => printSides([ui.side]));
+$('print-both').addEventListener('click', () => printSides(['front','back']));
+$('hist-reset').addEventListener('click', () => { $('hist').close(); snap(); state = stamp(clone(SEED)); setViewing(null); commit(true, true); showToast('Back to the original menu.'); });
+window.addEventListener('hashchange', () => { const s = location.hash === '#back' ? 'back' : 'front'; if (s !== ui.side) setSide(s); });
+if (window.ResizeObserver) new ResizeObserver(fitPaper).observe($('stage')); else window.addEventListener('resize', fitPaper);
+
+renderEditor(); renderPage(); save();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderPage);
+</script>
+</body>
+</html>
