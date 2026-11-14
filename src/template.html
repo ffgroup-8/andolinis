@@ -55,10 +55,41 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(340px,470px) 
 .pill.over{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
 .paper{outline:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.2),0 8px 28px rgba(0,0,0,.16);background:#fff;flex:none;overflow:hidden}
 .paper .pg{transform-origin:0 0}
+.viewtabs{display:none}
 @media (max-width:820px){
-  main{grid-template-columns:1fr;overflow:auto}
-  .editor{overflow:visible;border-right:0;border-bottom:1px solid var(--line)}
-  .stage{overflow:visible}
+  /* phones and small tablets: one pane at a time, switched with Edit / Preview */
+  .viewtabs{display:inline-flex}
+  main{display:block;overflow:hidden}
+  .editor,.stage{height:100%;overflow:auto;border-right:0;-webkit-overflow-scrolling:touch}
+  body[data-view="edit"] .stage{display:none}
+  body[data-view="preview"] .editor{display:none}
+  .editor{padding:12px}
+  .stage{padding:12px 12px 28px}
+  .bar{gap:8px;padding:8px 12px}
+  .bar .spacer{display:none}
+  .seg button{padding:10px 12px}
+  .btn{padding:9px 12px}
+  .printgrp{flex:1 1 100%}
+  .printgrp .btn{flex:1;justify-content:center}
+  input[type=text],textarea,select{font-size:16px}
+  .ib{width:40px;height:40px}
+  .tog{width:32px;height:32px}
+  .isum{min-height:40px}
+  .cat > .row{flex-wrap:wrap}
+  .cat > .row textarea{flex:1 1 100%}
+  .cat > .row textarea + .ib{margin-left:auto}
+  #hist-list li{flex-wrap:wrap}
+  #hist-list li div{flex:1 1 100%}
+  .status{justify-content:flex-start}
+  dialog{padding:14px}
+}
+@media (max-width:560px){
+  .brand-text{display:none}
+  .brand{margin-right:0}
+}
+@media (max-width:380px){
+  .seg button{padding:10px 8px;font-size:12px}
+  .mark{height:28px}
 }
 
 /* ---------- editor ---------- */
@@ -173,10 +204,14 @@ dialog .row{flex-wrap:wrap;margin-top:10px}
 </head>
 <body>
 <header class="bar">
-  <div class="brand">__LOGO__Bar Menu Builder - Cherry Street</div>
+  <div class="brand">__LOGO__<span class="brand-text">Bar Menu Builder - Cherry Street</span></div>
   <div class="seg" role="group" aria-label="Which side of the menu">
     <button type="button" id="side-front" data-side="front">Front<span class="dot" title="Runs off the page"></span></button>
     <button type="button" id="side-back" data-side="back">Back<span class="dot" title="Runs off the page"></span></button>
+  </div>
+  <div class="seg viewtabs" role="group" aria-label="Show the editor or the page">
+    <button type="button" id="view-edit" data-view="edit">Edit</button>
+    <button type="button" id="view-preview" data-view="preview">Preview</button>
   </div>
   <div class="spacer"></div>
   <button type="button" class="btn" id="history">History</button>
@@ -280,6 +315,7 @@ function renderHist(){
 function setViewing(h){
   ui.viewing = h || null;
   $('view-note').hidden = !h; $('editor').inert = !!h;
+  if (h) setView('preview');
   if (h) $('view-text').textContent = 'You are looking at the saved version from ' + when(h.at) + '. Editing is paused.';
   renderPage();
 }
@@ -355,7 +391,8 @@ function overflow(side){
 }
 function fitPaper(){
   const paper = $('paper'), pg = paper.firstElementChild; if (!pg) return;
-  const w = Math.max(280, $('stage').clientWidth - 48), k = Math.min(1, w / 1214);
+  const st = $('stage'), cs = getComputedStyle(st);
+  const w = Math.max(240, st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)), k = Math.min(1, w / 1214);
   paper.style.width = 1214 * k + 'px'; paper.style.height = 1571 * k + 'px';
   pg.style.transform = 'scale(' + k + ')';
 }
@@ -524,6 +561,13 @@ $('editor').addEventListener('click', e => { const b = e.target.closest('button[
 $('editor').addEventListener('input', e => { if (e.target.dataset.f && e.target.tagName !== 'SELECT' && e.target.type !== 'checkbox') edit(e.target); });
 $('editor').addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') edit(e.target); });
 $('editor').addEventListener('focusout', () => { burst = false; });
+function setView(v){
+  document.body.dataset.view = v;
+  $('view-edit').setAttribute('aria-pressed', v === 'edit'); $('view-preview').setAttribute('aria-pressed', v === 'preview');
+  fitPaper();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+setView('edit');
 document.querySelectorAll('[data-side]').forEach(b => b.addEventListener('click', () => setSide(b.dataset.side)));
 $('undo').addEventListener('click', undo);
 $('save-version').addEventListener('click', () => { const ok = saveVersion('Saved'); showToast(ok ? 'Version saved to History.' : 'Nothing has changed since the last saved version.'); $('toast-undo').hidden = true; });
